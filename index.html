@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ServiceNow CAD 模擬試験 &amp; 学習アプリ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 0. 設定画面 -->
+  <div id="settings-screen" class="screen">
+    <div class="card settings-card">
+      <h1>ServiceNow CAD 対策</h1>
+      <p class="subtitle">模擬テスト &amp; 学習（トレーニング）アプリ</p>
+
+      <div class="form-group">
+        <label>データ接続状態</label>
+        <div class="status-row">
+          <div id="data-source-status" class="data-status-badge">確認中...</div>
+          <button id="btn-reload-data" class="btn btn-secondary btn-sm">🔄 再読み込み</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>モード選択</label>
+        <div class="radio-group">
+          <label><input type="radio" name="exam-mode" value="exam" id="mode-exam" checked> 模擬テストモード（60問・90分・本番風・PC向け）</label>
+          <label><input type="radio" name="exam-mode" value="practice" id="mode-practice"> 学習モード（タイマーなし・手動採点・スマホ対応）</label>
+        </div>
+      </div>
+
+      <!-- 学習モード用オプション -->
+      <div id="practice-options" class="practice-options hidden">
+        <div class="form-group">
+          <label>出題問題数</label>
+          <div class="radio-group row">
+            <label><input type="radio" name="practice-count" value="5"> 5問</label>
+            <label><input type="radio" name="practice-count" value="10" checked> 10問</label>
+            <label><input type="radio" name="practice-count" value="20"> 20問</label>
+            <label><input type="radio" name="practice-count" value="infinite"> 無限（好きなだけ解く）</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>出題順</label>
+          <div class="radio-group row">
+            <label><input type="radio" name="practice-order" value="sequential" checked> 順番通り</label>
+            <label><input type="radio" name="practice-order" value="random"> ランダム</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>出題範囲</label>
+          <div class="radio-group">
+            <label><input type="radio" name="practice-scope" value="all" checked> 全分野</label>
+            <label><input type="radio" name="practice-scope" value="category"> 分野を選択</label>
+            <div id="category-select-container" class="sub-options hidden">
+              <div id="category-checklist" class="checklist"></div>
+            </div>
+            <label><input type="radio" name="practice-scope" value="review" id="radio-scope-review"> 復習（タグ付けした問題のみ）</label>
+            <span id="review-no-items-msg" class="warning-text hidden">復習タグ付きの問題がありません</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button id="btn-start" class="btn btn-primary">試験・学習を開始する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1. 読み込み中画面 -->
+  <div id="loading-screen" class="screen hidden">
+    <div class="loading-box">
+      <div class="spinner"></div>
+      <p>問題データを読み込み中...</p>
+    </div>
+  </div>
+
+  <!-- 2. 試験・学習画面 -->
+  <div id="exam-screen" class="screen hidden">
+    <header class="exam-header">
+      <div class="header-left">
+        <button id="btn-home-header" class="btn btn-secondary btn-sm">🏠 ホーム</button>
+        <span class="exam-title">ServiceNow CAD</span>
+      </div>
+      <div class="header-center">
+        <span id="question-progress">Question 1 of 10</span>
+      </div>
+      <div class="header-right">
+        <div id="timer-container">
+          残り時間: <span id="timer">90:00</span>
+        </div>
+        <button id="btn-submit-header" class="btn btn-danger btn-sm">Submit Exam</button>
+      </div>
+    </header>
+
+    <main class="exam-body">
+      <div class="question-container card">
+        <div class="question-top-bar">
+          <div>
+            <span id="question-category" class="badge">分野</span>
+            <button id="btn-tag-question" class="btn-tag">⭐ 要復習タグをつける</button>
+          </div>
+          <label id="mark-review-label" class="mark-review">
+            <input type="checkbox" id="mark-review-checkbox"> Mark for Review
+          </label>
+        </div>
+        <div id="question-text" class="question-text">問題文がここに入ります</div>
+        <div id="options-container" class="options-container"></div>
+        
+        <!-- 学習モード用：手動採点ボタン -->
+        <div id="practice-check-container" class="practice-check-container hidden">
+          <button id="btn-check-answer" class="btn btn-primary">採点する</button>
+        </div>
+
+        <div id="practice-feedback" class="explanation-box hidden"></div>
+      </div>
+    </main>
+
+    <footer class="exam-footer">
+      <button id="btn-prev" class="btn btn-secondary">前へ</button>
+      <button id="btn-next" class="btn btn-primary">次へ</button>
+    </footer>
+  </div>
+
+  <!-- 3. 見直し画面 (模擬テスト用) -->
+  <div id="review-screen" class="screen hidden">
+    <div class="card review-card">
+      <div class="review-header">
+        <h2>回答状況一覧 (Review)</h2>
+        <button id="btn-home-review" class="btn btn-secondary btn-sm">🏠 ホーム</button>
+      </div>
+      <p class="review-instruction">各問題をクリックして見直すことができます。確認が終わったら「Submit Exam」を押してください。</p>
+      
+      <div class="legend">
+        <span class="legend-item"><span class="box status-answered"></span> 回答済み</span>
+        <span class="legend-item"><span class="box status-unanswered"></span> 未回答</span>
+        <span class="legend-item"><span class="box status-marked"></span> Mark for Review</span>
+        <span class="legend-item"><span class="box status-answered-marked"></span> 回答済み + Mark</span>
+      </div>
+
+      <div id="review-grid" class="review-grid"></div>
+
+      <div class="button-group space-between">
+        <button id="btn-return-exam" class="btn btn-secondary">試験画面に戻る</button>
+        <button id="btn-submit-final" class="btn btn-danger">Submit Exam (採点)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 採点結果画面 (模擬テストモード用) -->
+  <div id="result-screen" class="screen hidden">
+    <div class="card result-card">
+      <div id="result-badge" class="result-badge">PASS</div>
+      <h2>試験結果</h2>
+      <div class="score-details">
+        <p>スコア: <span id="score-text">0 / 0</span> (<span id="score-percent">0%</span>)</p>
+        <p>合格ライン: 70%</p>
+      </div>
+
+      <div id="incorrect-list-container">
+        <h3>不正解の問題・解説</h3>
+        <div id="incorrect-list" class="incorrect-list"></div>
+      </div>
+
+      <div class="button-group">
+        <button id="btn-exam-review-again" class="btn btn-primary hidden">間違えた問題を復習する</button>
+        <button id="btn-retake-exam" class="btn btn-secondary">もう一度受験する (Retake)</button>
+        <button id="btn-back-settings-1" class="btn btn-secondary">🏠 ホームに戻る</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. 学習モード結果画面 -->
+  <div id="practice-result-screen" class="screen hidden">
+    <div class="card result-card">
+      <h2>学習セッション完了</h2>
+      <div class="score-details">
+        <p>正解数: <span id="practice-score-text">0 / 0</span> (<span id="practice-score-percent">0%</span>)</p>
+      </div>
+
+      <div id="practice-incorrect-list-container">
+        <h3>今回不正解だった問題・解説</h3>
+        <div id="practice-incorrect-list" class="incorrect-list"></div>
+      </div>
+
+      <div class="button-group">
+        <button id="btn-practice-review-again" class="btn btn-primary">間違えた問題を復習する</button>
+        <button id="btn-back-settings-2" class="btn btn-secondary">🏠 ホームに戻る</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
