@@ -360,6 +360,20 @@ body {
   background-color: #f0f7ff;
 }
 
+/* 採点後の選択肢ハイライト */
+.option-card.option-correct {
+  background-color: #e8f5e9 !important;
+  border-color: #81c784 !important;
+  color: #1b5e20;
+  font-weight: bold;
+}
+
+.option-card.option-incorrect {
+  background-color: #ffebee !important;
+  border-color: #e57373 !important;
+  color: #b71c1c;
+}
+
 .option-card input {
   margin-top: 3px;
   cursor: pointer;

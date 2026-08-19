@@ -416,6 +416,11 @@ function renderQuestion(index) {
 
     if (examState.mode === 'practice' && examState.checkedPractice[q.id]) {
       input.disabled = true;
+      if (q.correctAnswers.includes(key)) {
+        card.classList.add('option-correct');
+      } else if (userAns.includes(key)) {
+        card.classList.add('option-incorrect');
+      }
     }
 
     input.addEventListener('change', () => handleOptionChange(key));
@@ -486,7 +491,18 @@ function checkPracticeAnswer() {
   document.getElementById('btn-check-answer').disabled = true;
 
   const inputs = document.querySelectorAll(`input[name="question_option_${q.id}"]`);
-  inputs.forEach(i => i.disabled = true);
+  inputs.forEach(input => {
+    input.disabled = true;
+    const card = input.closest('.option-card');
+    if (card) {
+      const key = input.value;
+      if (q.correctAnswers.includes(key)) {
+        card.classList.add('option-correct');
+      } else if (userAnswers.includes(key)) {
+        card.classList.add('option-incorrect');
+      }
+    }
+  });
 }
 
 function showPracticeFeedback(question, userAnswers) {
@@ -640,23 +656,34 @@ function renderReviewScreen() {
 // 採点・結果画面
 // ==========================================
 
+let examResultDetails = []; // 模試結果詳細保持
+
 function submitExam() {
   stopTimer();
 
   let correctCount = 0;
   const total = examState.questions.length;
-  const incorrectQuestions = [];
   const incorrectQuestionObjs = [];
+  examResultDetails = [];
 
-  examState.questions.forEach(q => {
+  examState.questions.forEach((q, idx) => {
     const userAns = examState.answers[q.id] || [];
-    const correct = isAnswerCorrect(q, userAns);
-    if (correct) {
+    const isCorrect = isAnswerCorrect(q, userAns);
+    const isMarked = !!examState.markedForReview[q.id];
+
+    if (isCorrect) {
       correctCount++;
     } else {
-      incorrectQuestions.push({ question: q, userAns: userAns });
       incorrectQuestionObjs.push(q);
     }
+
+    examResultDetails.push({
+      index: idx + 1,
+      question: q,
+      userAns: userAns,
+      isCorrect: isCorrect,
+      isMarked: isMarked
+    });
   });
 
   examState.lastIncorrectQuestions = incorrectQuestionObjs;
@@ -671,39 +698,103 @@ function submitExam() {
   document.getElementById('score-text').textContent = `${correctCount} / ${total}`;
   document.getElementById('score-percent').textContent = `${percent}%`;
 
-  const listEl = document.getElementById('incorrect-list');
-  listEl.innerHTML = '';
-
   const btnReviewExam = document.getElementById('btn-exam-review-again');
-
-  if (incorrectQuestions.length === 0) {
-    listEl.innerHTML = '<p>全問正解です！おめでとうございます！</p>';
-    if (btnReviewExam) btnReviewExam.classList.add('hidden');
-  } else {
-    if (btnReviewExam) btnReviewExam.classList.remove('hidden');
-    incorrectQuestions.forEach(({ question: q, userAns }) => {
-      const item = document.createElement('div');
-      item.className = 'incorrect-item';
-
-      const userAnsStr = userAns.length > 0
-        ? userAns.map(k => `${q.options[k] || ''}`).join(', ')
-        : '（未回答）';
-      const correctStr = q.correctAnswers.map(k => `${q.options[k] || ''}`).join(', ');
-
-      item.innerHTML = `
-        <div class="q-title">[問 ${q.id}] ${q.questionText}</div>
-        <div class="ans-info"><strong>あなたの解答:</strong> ${userAnsStr}</div>
-        <div class="ans-info"><strong>正解:</strong> ${correctStr}</div>
-        <div class="explanation-box incorrect">
-          <div class="explanation-title">解説</div>
-          <div>${q.explanation || '解説は登録されていません'}</div>
-        </div>
-      `;
-      listEl.appendChild(item);
-    });
+  if (btnReviewExam) {
+    if (incorrectQuestionObjs.length === 0) {
+      btnReviewExam.classList.add('hidden');
+    } else {
+      btnReviewExam.classList.remove('hidden');
+    }
   }
 
+  // 初期選択を「間違えた問題のみ」に設定
+  const defaultRadio = document.getElementById('filter-incorrect');
+  if (defaultRadio) defaultRadio.checked = true;
+
+  renderExamResultList('incorrect');
+
   showScreen('result-screen');
+}
+
+function renderExamResultList(filterType) {
+  const listEl = document.getElementById('incorrect-list');
+  const headingEl = document.getElementById('result-list-heading');
+  if (!listEl) return;
+
+  listEl.innerHTML = '';
+
+  let filteredList = [];
+  if (filterType === 'all') {
+    if (headingEl) headingEl.textContent = '全問題・解答と解説';
+    filteredList = examResultDetails;
+  } else if (filterType === 'incorrect') {
+    if (headingEl) headingEl.textContent = '不正解の問題・解答と解説';
+    filteredList = examResultDetails.filter(d => !d.isCorrect);
+  } else if (filterType === 'correct') {
+    if (headingEl) headingEl.textContent = '正解した問題・解答と解説';
+    filteredList = examResultDetails.filter(d => d.isCorrect);
+  } else if (filterType === 'marked') {
+    if (headingEl) headingEl.textContent = 'Mark for Review の問題・解答と解説';
+    filteredList = examResultDetails.filter(d => d.isMarked);
+  }
+
+  if (filteredList.length === 0) {
+    listEl.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">該当する問題はありません。</p>';
+    return;
+  }
+
+  filteredList.forEach(({ index, question: q, userAns, isCorrect, isMarked }) => {
+    const item = document.createElement('div');
+    item.className = 'incorrect-item';
+
+    const statusBadge = isCorrect 
+      ? '<span style="color: #2e7d32; font-weight: bold; margin-left: 8px;">[ ◯ 正解 ]</span>'
+      : '<span style="color: #c62828; font-weight: bold; margin-left: 8px;">[ × 不正解 ]</span>';
+
+    const markedBadge = isMarked
+      ? '<span style="color: #f57f17; font-weight: bold; margin-left: 8px;">[ 🚩 Mark for Review ]</span>'
+      : '';
+
+    const userAnsStr = userAns.length > 0
+      ? userAns.map(k => `${q.options[k] || ''}`).join(', ')
+      : '（未回答）';
+    const correctStr = q.correctAnswers.map(k => `${q.options[k] || ''}`).join(', ');
+
+    let optionsHtml = '<div class="options-container" style="margin-top: 12px; margin-bottom: 12px;">';
+    Object.keys(q.options).forEach(key => {
+      let optClass = 'option-card';
+      const isCorrectKey = q.correctAnswers.includes(key);
+      const isUserAnsKey = userAns.includes(key);
+      const inputType = q.type === 'single' ? 'radio' : 'checkbox';
+      const checkedAttr = isUserAnsKey ? 'checked' : '';
+
+      if (isCorrectKey) {
+        optClass += ' option-correct';
+      } else if (isUserAnsKey) {
+        optClass += ' option-incorrect';
+      }
+
+      optionsHtml += `
+        <div class="${optClass}" style="cursor: default;">
+          <input type="${inputType}" disabled ${checkedAttr} style="margin-top: 3px; cursor: default;">
+          <label class="option-label" style="cursor: default;">${q.options[key]}</label>
+        </div>
+      `;
+    });
+    optionsHtml += '</div>';
+
+    item.innerHTML = `
+      <div class="q-title">[問 ${index}] ${q.questionText} ${statusBadge} ${markedBadge}</div>
+      <div class="ans-info"><strong>あなたの解答:</strong> ${userAnsStr}</div>
+      <div class="ans-info"><strong>正解:</strong> ${correctStr}</div>
+      ${optionsHtml}
+      <div class="explanation-box ${isCorrect ? 'correct' : 'incorrect'}">
+        <div class="explanation-title">解説</div>
+        <div>${q.explanation || '解説は登録されていません'}</div>
+      </div>
+    `;
+    listEl.appendChild(item);
+  });
 }
 
 function retakeExam() {
@@ -950,6 +1041,13 @@ async function init() {
   if (btnExamReview) {
     btnExamReview.addEventListener('click', startReviewIncorrectSession);
   }
+
+  const resultFilterRadios = document.querySelectorAll('input[name="result-filter"]');
+  resultFilterRadios.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      renderExamResultList(e.target.value);
+    });
+  });
 }
 
 async function startApp() {

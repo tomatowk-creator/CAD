@@ -160,8 +160,18 @@
         <p>合格ライン: 70%</p>
       </div>
 
+      <div id="result-filter-container" class="form-group" style="margin-top: 20px;">
+        <label>表示モード切り替え</label>
+        <div class="radio-group row">
+          <label><input type="radio" name="result-filter" value="all" id="filter-all"> すべて表示</label>
+          <label><input type="radio" name="result-filter" value="incorrect" id="filter-incorrect" checked> 間違えた問題のみ</label>
+          <label><input type="radio" name="result-filter" value="correct" id="filter-correct"> 正解した問題のみ</label>
+          <label><input type="radio" name="result-filter" value="marked" id="filter-marked"> Mark for Review のみ</label>
+        </div>
+      </div>
+
       <div id="incorrect-list-container">
-        <h3>不正解の問題・解説</h3>
+        <h3 id="result-list-heading">問題・解説</h3>
         <div id="incorrect-list" class="incorrect-list"></div>
       </div>
 
