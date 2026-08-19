@@ -93,6 +93,14 @@ const examState = {
 // CSV パーサー関数
 // ==========================================
 
+function parseCorrectAnswers(rawInput) {
+  if (!rawInput) return [];
+  return String(rawInput)
+    .split(/[,、\s]+/)
+    .map(s => s.trim().toUpperCase())
+    .filter(s => /^[A-H]$/.test(s));
+}
+
 function parseCSVToQuestions(csvText) {
   const lines = parseCSVLines(csvText);
   if (lines.length < 2) return [];
@@ -117,9 +125,7 @@ function parseCSVToQuestions(csvText) {
       }
     });
 
-    const correctAnswers = rowObj.correct_answers
-      ? rowObj.correct_answers.split(',').map(s => s.trim().toUpperCase()).filter(Boolean)
-      : [];
+    const correctAnswers = parseCorrectAnswers(rowObj.correct_answers || rowObj.correctAnswers);
 
     const isTagged = rowObj.is_tagged
       ? String(rowObj.is_tagged).toUpperCase() === 'TRUE'
@@ -302,10 +308,7 @@ function parseGasDataToQuestions(rawList) {
     });
 
     const rawCorrect = rowObj.correct_answers || rowObj.correctAnswers || '';
-    const correctAnswers = String(rawCorrect)
-      .split(',')
-      .map(s => s.trim().toUpperCase())
-      .filter(Boolean);
+    const correctAnswers = parseCorrectAnswers(rawCorrect);
 
     const rawTagged = rowObj.is_tagged !== undefined ? rowObj.is_tagged : rowObj.isTagged;
     const isTagged = String(rawTagged).toUpperCase() === 'TRUE';
@@ -427,14 +430,16 @@ function renderQuestion(index) {
       }
     }
 
-    input.addEventListener('change', () => handleOptionChange(key));
+    input.addEventListener('change', (e) => handleOptionChange(key, e.target));
 
     const label = document.createElement('label');
     label.className = 'option-label';
     label.textContent = `${q.options[key]}`;
     label.addEventListener('click', (e) => {
       if (e.target !== input && !input.disabled) {
-        input.click();
+        e.preventDefault();
+        input.checked = !input.checked;
+        input.dispatchEvent(new Event('change'));
       }
     });
 
@@ -454,7 +459,7 @@ function renderQuestion(index) {
   }
 }
 
-function handleOptionChange(optionKey) {
+function handleOptionChange(optionKey, inputElement) {
   const q = examState.questions[examState.currentIndex];
   if (!q) return;
 
@@ -466,10 +471,13 @@ function handleOptionChange(optionKey) {
     if (currentSelected.includes(optionKey)) {
       currentSelected = currentSelected.filter(k => k !== optionKey);
     } else {
-      const maxAllowed = q.correctAnswers.length > 0 ? q.correctAnswers.length : 2;
+      const maxAllowed = (q.correctAnswers && q.correctAnswers.length > 0) ? q.correctAnswers.length : 2;
+
       if (currentSelected.length >= maxAllowed) {
         alert(`選択できるのは${maxAllowed}個までです`);
-        renderQuestion(examState.currentIndex);
+        if (inputElement) {
+          inputElement.checked = false;
+        }
         return;
       }
       currentSelected.push(optionKey);
