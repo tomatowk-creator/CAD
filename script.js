@@ -98,7 +98,7 @@ function parseCorrectAnswers(rawInput) {
   return String(rawInput)
     .split(/[,、\s]+/)
     .map(s => s.trim().toUpperCase())
-    .filter(s => /^[A-H]$/.test(s));
+    .filter(Boolean);
 }
 
 function parseCSVToQuestions(csvText) {
