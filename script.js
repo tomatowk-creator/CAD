@@ -135,10 +135,13 @@ function parseCSVToQuestions(csvText) {
     // 問題文が記入されていない行はスキップ
     if (!qText) continue;
 
+    const rawType = String(rowObj.type || '').trim().toLowerCase();
+    const isMulti = rawType === 'multi' || rawType === 'multiple' || rawType === '複数' || correctAnswers.length > 1;
+
     questions.push({
       id: qId || i,
       questionText: qText,
-      type: rowObj.type === 'multi' ? 'multi' : 'single',
+      type: isMulti ? 'multi' : 'single',
       category: rowObj.category || '全般',
       options: options,
       correctAnswers: correctAnswers,
@@ -313,10 +316,13 @@ function parseGasDataToQuestions(rawList) {
     const rawTagged = rowObj.is_tagged !== undefined ? rowObj.is_tagged : rowObj.isTagged;
     const isTagged = String(rawTagged).toUpperCase() === 'TRUE';
 
+    const rawType = String(rowObj.type || '').trim().toLowerCase();
+    const isMulti = rawType === 'multi' || rawType === 'multiple' || rawType === '複数' || correctAnswers.length > 1;
+
     return {
       id: rowObj.id !== undefined && rowObj.id !== '' ? rowObj.id : (idx + 1),
       questionText: rowObj.question_text || rowObj.questionText || '',
-      type: (rowObj.type === 'multi') ? 'multi' : 'single',
+      type: isMulti ? 'multi' : 'single',
       category: rowObj.category || '全般',
       options: options,
       correctAnswers: correctAnswers,
@@ -471,15 +477,6 @@ function handleOptionChange(optionKey, inputElement) {
     if (currentSelected.includes(optionKey)) {
       currentSelected = currentSelected.filter(k => k !== optionKey);
     } else {
-      const maxAllowed = (q.correctAnswers && q.correctAnswers.length > 0) ? q.correctAnswers.length : 2;
-
-      if (currentSelected.length >= maxAllowed) {
-        alert(`選択できるのは${maxAllowed}個までです`);
-        if (inputElement) {
-          inputElement.checked = false;
-        }
-        return;
-      }
       currentSelected.push(optionKey);
     }
   }
