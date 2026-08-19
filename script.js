@@ -136,7 +136,7 @@ function parseCSVToQuestions(csvText) {
     if (!qText) continue;
 
     const rawType = String(rowObj.type || '').trim().toLowerCase();
-    const isMulti = rawType === 'multi' || rawType === 'multiple' || rawType === '複数' || correctAnswers.length > 1;
+    const isMulti = rawType === 'multi' || rawType === 'multiple' || rawType.includes('multi') || rawType === '複数';
 
     questions.push({
       id: qId || i,
@@ -317,11 +317,12 @@ function parseGasDataToQuestions(rawList) {
     const isTagged = String(rawTagged).toUpperCase() === 'TRUE';
 
     const rawType = String(rowObj.type || '').trim().toLowerCase();
-    const isMulti = rawType === 'multi' || rawType === 'multiple' || rawType === '複数' || correctAnswers.length > 1;
+    const qText = rowObj.question_text || rowObj.questionText || '';
+    const isMulti = rawType === 'multi' || rawType === 'multiple' || rawType.includes('multi') || rawType === '複数';
 
     return {
       id: rowObj.id !== undefined && rowObj.id !== '' ? rowObj.id : (idx + 1),
-      questionText: rowObj.question_text || rowObj.questionText || '',
+      questionText: qText,
       type: isMulti ? 'multi' : 'single',
       category: rowObj.category || '全般',
       options: options,
