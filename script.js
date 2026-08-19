@@ -346,6 +346,10 @@ function showScreen(screenId) {
       }
     }
   });
+
+  if (screenId === 'settings-screen' && typeof updateModeUI === 'function') {
+    updateModeUI();
+  }
 }
 
 // ==========================================
@@ -564,11 +568,28 @@ function toggleMarkForReview() {
   examState.markedForReview[q.id] = markCheck.checked;
 }
 
-function confirmGoHome() {
-  if (confirm('現在の進捗状況は破棄されますが、ホームに戻りますか？')) {
-    stopTimer();
-    showScreen('settings-screen');
+function confirmGoHome(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
   }
+  const modal = document.getElementById('confirm-home-modal');
+  if (modal) {
+    modal.classList.remove('hidden');
+  }
+}
+
+function closeHomeModal() {
+  const modal = document.getElementById('confirm-home-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+}
+
+function proceedGoHome() {
+  closeHomeModal();
+  stopTimer();
+  showScreen('settings-screen');
 }
 
 // ==========================================
@@ -917,6 +938,46 @@ function startReviewIncorrectSession() {
   renderQuestion(0);
 }
 
+function updateReviewRadioState() {
+  const hasTagged = (examState.questions || []).some(q => isQuestionTagged(q));
+  const reviewRadio = document.getElementById('radio-scope-review');
+  const msg = document.getElementById('review-no-items-msg');
+  if (!reviewRadio || !msg) return;
+
+  if (!hasTagged) {
+    reviewRadio.disabled = true;
+    msg.classList.remove('hidden');
+    if (reviewRadio.checked) {
+      const defaultAllRadio = document.querySelector('input[name="practice-scope"][value="all"]');
+      if (defaultAllRadio) defaultAllRadio.checked = true;
+    }
+  } else {
+    reviewRadio.disabled = false;
+    msg.classList.add('hidden');
+  }
+}
+
+function updateModeUI() {
+  const modePracticeRadio = document.getElementById('mode-practice');
+  const practiceOptions = document.getElementById('practice-options');
+  const categorySubOptions = document.getElementById('category-select-container');
+  const checkedScope = document.querySelector('input[name="practice-scope"]:checked');
+
+  if (!practiceOptions || !modePracticeRadio) return;
+
+  if (modePracticeRadio.checked) {
+    practiceOptions.classList.remove('hidden');
+    updateReviewRadioState();
+    if (checkedScope && checkedScope.value === 'category') {
+      if (categorySubOptions) categorySubOptions.classList.remove('hidden');
+    } else {
+      if (categorySubOptions) categorySubOptions.classList.add('hidden');
+    }
+  } else {
+    practiceOptions.classList.add('hidden');
+  }
+}
+
 // ==========================================
 // 初期化シーケンス
 // ==========================================
@@ -941,19 +1002,11 @@ async function init() {
 
   const modeExamRadio = document.getElementById('mode-exam');
   const modePracticeRadio = document.getElementById('mode-practice');
-  const practiceOptions = document.getElementById('practice-options');
-
-  function updateModeUI() {
-    if (modePracticeRadio.checked) {
-      practiceOptions.classList.remove('hidden');
-      updateReviewRadioState();
-    } else {
-      practiceOptions.classList.add('hidden');
-    }
-  }
 
   modeExamRadio.addEventListener('change', updateModeUI);
+  modeExamRadio.addEventListener('click', updateModeUI);
   modePracticeRadio.addEventListener('change', updateModeUI);
+  modePracticeRadio.addEventListener('click', updateModeUI);
 
   const scopeRadios = document.querySelectorAll('input[name="practice-scope"]');
   const categorySubOptions = document.getElementById('category-select-container');
@@ -973,22 +1026,6 @@ async function init() {
     });
   });
 
-  function updateReviewRadioState() {
-    const hasTagged = examState.questions.some(q => isQuestionTagged(q));
-    const reviewRadio = document.getElementById('radio-scope-review');
-    const msg = document.getElementById('review-no-items-msg');
-    if (!hasTagged) {
-      reviewRadio.disabled = true;
-      msg.classList.remove('hidden');
-      if (reviewRadio.checked) {
-        document.querySelector('input[name="practice-scope"][value="all"]').checked = true;
-      }
-    } else {
-      reviewRadio.disabled = false;
-      msg.classList.add('hidden');
-    }
-  }
-
   document.getElementById('btn-tag-question').addEventListener('click', async () => {
     const q = examState.questions[examState.currentIndex];
     if (q) {
@@ -999,6 +1036,18 @@ async function init() {
 
   document.getElementById('btn-home-header').addEventListener('click', confirmGoHome);
   document.getElementById('btn-home-review').addEventListener('click', confirmGoHome);
+
+  const btnCancelHome = document.getElementById('btn-cancel-home');
+  if (btnCancelHome) {
+    btnCancelHome.addEventListener('click', closeHomeModal);
+  }
+  const btnConfirmHomeYes = document.getElementById('btn-confirm-home-yes');
+  if (btnConfirmHomeYes) {
+    btnConfirmHomeYes.addEventListener('click', proceedGoHome);
+  }
+
+  // 初期化時に現在のUIモード状態を確実に適用
+  updateModeUI();
 
   document.getElementById('btn-check-answer').addEventListener('click', checkPracticeAnswer);
 
