@@ -967,7 +967,9 @@ function updateModeUI() {
   const modePracticeRadio = document.getElementById('mode-practice');
   const practiceOptions = document.getElementById('practice-options');
   const categorySubOptions = document.getElementById('category-select-container');
+  const startNumberContainer = document.getElementById('start-number-container');
   const checkedScope = document.querySelector('input[name="practice-scope"]:checked');
+  const checkedOrder = document.querySelector('input[name="practice-order"]:checked');
 
   if (!practiceOptions || !modePracticeRadio) return;
 
@@ -978,6 +980,13 @@ function updateModeUI() {
       if (categorySubOptions) categorySubOptions.classList.remove('hidden');
     } else {
       if (categorySubOptions) categorySubOptions.classList.add('hidden');
+    }
+    if (startNumberContainer) {
+      if (checkedOrder && checkedOrder.value === 'start_from') {
+        startNumberContainer.classList.remove('hidden');
+      } else {
+        startNumberContainer.classList.add('hidden');
+      }
     }
   } else {
     practiceOptions.classList.add('hidden');
@@ -1013,6 +1022,11 @@ async function init() {
   modeExamRadio.addEventListener('click', updateModeUI);
   modePracticeRadio.addEventListener('change', updateModeUI);
   modePracticeRadio.addEventListener('click', updateModeUI);
+
+  const orderRadios = document.querySelectorAll('input[name="practice-order"]');
+  orderRadios.forEach(radio => {
+    radio.addEventListener('change', updateModeUI);
+  });
 
   const scopeRadios = document.querySelectorAll('input[name="practice-scope"]');
   const categorySubOptions = document.getElementById('category-select-container');
@@ -1141,6 +1155,20 @@ async function startApp() {
         }
         return String(a.id).localeCompare(String(b.id), undefined, { numeric: true });
       });
+
+      if (examState.practiceOrder === 'start_from') {
+        const startInput = document.getElementById('practice-start-number');
+        const startNum = startInput ? parseInt(startInput.value, 10) : 1;
+        if (!isNaN(startNum) && startNum > 1) {
+          let targetIdx = filtered.findIndex(q => parseFloat(q.id) >= startNum);
+          if (targetIdx === -1) {
+            targetIdx = 0;
+          }
+          if (targetIdx > 0) {
+            filtered = [...filtered.slice(targetIdx), ...filtered.slice(0, targetIdx)];
+          }
+        }
+      }
     }
 
     if (examState.practiceCount !== 'infinite') {

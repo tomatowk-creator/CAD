@@ -47,6 +47,12 @@
           <div class="radio-group row">
             <label><input type="radio" name="practice-order" value="sequential" checked> 順番通り</label>
             <label><input type="radio" name="practice-order" value="random"> ランダム</label>
+            <label><input type="radio" name="practice-order" value="start_from" id="order-start-from"> 指定番号から開始</label>
+          </div>
+          <div id="start-number-container" class="sub-options hidden" style="margin-top: 8px;">
+            <label style="font-size: 0.9em; color: #555;">開始問題番号 (ID): 
+              <input type="number" id="practice-start-number" min="1" placeholder="例: 15" style="width: 100px; padding: 4px 8px; font-size: 0.95em; border: 1px solid #ccc; border-radius: 4px;">
+            </label>
           </div>
         </div>
 
