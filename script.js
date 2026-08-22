@@ -372,7 +372,11 @@ function renderQuestion(index) {
   if (!q) return;
 
   const total = examState.questions.length;
-  document.getElementById('question-progress').textContent = `Question ${index + 1} of ${total}`;
+  if (examState.mode === 'practice' && examState.practiceOrder === 'start_from') {
+    document.getElementById('question-progress').textContent = `No. ${q.id} (${index + 1} of ${total})`;
+  } else {
+    document.getElementById('question-progress').textContent = `Question ${index + 1} of ${total}`;
+  }
   document.getElementById('question-category').textContent = q.category || '全般';
   document.getElementById('question-text').textContent = q.questionText;
 
