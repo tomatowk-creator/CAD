@@ -850,9 +850,6 @@ function finishPractice() {
       const correct = isAnswerCorrect(q, userAns);
       if (correct) {
         correctCount++;
-        if (q.isTagged) {
-          toggleQuestionTag(q);
-        }
       } else {
         incorrectQuestionObjs.push(q);
       }
